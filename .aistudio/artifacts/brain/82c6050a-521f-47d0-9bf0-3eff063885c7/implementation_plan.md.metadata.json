@@ -1,0 +1,6 @@
+{
+  "summary": "Comprehensive implementation plan to fix the 6 reported issues in Vibe Wizard Chess 3D:\n1. Fix all 5 curated tactical puzzles with verified legal moves, automated defender replies, and interactive celebration.\n2. Re-architect the AI engine with true calibrated search depths (Easy blunders, Medium solid, Hard depth 3 + PST, Expert depth 4 + alpha-beta + quiescence).\n3. Implement FIDE draw rules (Threefold repetition and 50-move rule) with endgame dialog and restart button.\n4. Fix autosave reload freeze on computer turn by scheduling AI moves on restore.\n5. Build the requested notation move list and captured pieces display (collapsible bottom drawer on mobile, persistent sidebar on desktop).\n6. Fix portrait mobile board cropping with dynamic camera distance and responsive aspect framing.",
+  "updatedAt": "2026-10-19T05:05:36.726699380Z",
+  "requestFeedback": true,
+  "userFacing": true
+}
