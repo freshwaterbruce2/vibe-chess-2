@@ -141,18 +141,20 @@ export const PUZZLES: Puzzle[] = [
     playerColor: 'w',
     turn: 'w',
     pieces: [
-      { type: 'king', color: 'w', r: 7, c: 4 },
+      { type: 'king', color: 'w', r: 7, c: 4 }, // e1
       { type: 'queen', color: 'w', r: 3, c: 7 }, // h5
       { type: 'bishop', color: 'w', r: 4, c: 2 }, // c4
       { type: 'pawn', color: 'w', r: 4, c: 4 }, // e4
       { type: 'king', color: 'b', r: 0, c: 4 }, // e8
-      { type: 'pawn', color: 'b', r: 1, c: 4 }, // e5
+      { type: 'queen', color: 'b', r: 0, c: 3 }, // d8
+      { type: 'bishop', color: 'b', r: 0, c: 5 }, // f8
+      { type: 'pawn', color: 'b', r: 3, c: 4 }, // e5
       { type: 'pawn', color: 'b', r: 1, c: 5 }, // f7
       { type: 'knight', color: 'b', r: 2, c: 2 } // c6
     ],
     solution: [{ fromR: 3, fromC: 7, toR: 1, toC: 5 }], // Qxf7#
     hint: 'Take on f7 with your Queen! The Bishop on c4 covers her.',
-    explanation: 'Qxf7# attacks the King directly. The King cannot take the Queen because she is protected by the Bishop on c4, and has no open escape squares.'
+    explanation: 'Qxf7# attacks the King directly. The King cannot capture because the Queen is protected by the Bishop on c4, and has no open escape squares.'
   },
   {
     id: 'puzzle-back-rank',
@@ -183,15 +185,15 @@ export const PUZZLES: Puzzle[] = [
     playerColor: 'w',
     turn: 'w',
     pieces: [
-      { type: 'king', color: 'w', r: 7, c: 1 },
-      { type: 'knight', color: 'w', r: 2, c: 4 }, // e6
+      { type: 'king', color: 'w', r: 7, c: 6 }, // g1
+      { type: 'knight', color: 'w', r: 3, c: 4 }, // e5 (legal jump to f7)
       { type: 'king', color: 'b', r: 0, c: 7 },   // h8
       { type: 'rook', color: 'b', r: 0, c: 6 },   // g8
       { type: 'pawn', color: 'b', r: 1, c: 6 },   // g7
       { type: 'pawn', color: 'b', r: 1, c: 7 }    // h7
     ],
-    solution: [{ fromR: 2, fromC: 4, toR: 1, toC: 5 }], // Nf7#
-    hint: 'Hop the Knight into f7 to corner the trapped King.',
+    solution: [{ fromR: 3, fromC: 4, toR: 1, toC: 5 }], // Nf7#
+    hint: 'Hop the Knight from e5 into f7 to corner the trapped King.',
     explanation: 'Nf7# attacks the King on h8. Because all adjacent squares (g8, g7, h7) are blocked by friendly Black pieces, it is a textbook smothered checkmate.'
   },
   {
@@ -202,46 +204,50 @@ export const PUZZLES: Puzzle[] = [
     playerColor: 'w',
     turn: 'w',
     pieces: [
-      { type: 'king', color: 'w', r: 6, c: 6 },
-      { type: 'knight', color: 'w', r: 3, c: 4 }, // e5
-      { type: 'queen', color: 'w', r: 3, c: 3 },  // d5
-      { type: 'rook', color: 'w', r: 7, c: 0 },   // a1 (can slide to h1)
-      { type: 'king', color: 'b', r: 0, c: 6 },   // g8
+      { type: 'king', color: 'w', r: 7, c: 6 },   // g1
+      { type: 'knight', color: 'w', r: 1, c: 4 }, // e7 (guards g8 and g6!)
+      { type: 'queen', color: 'w', r: 4, c: 7 },  // h4
+      { type: 'rook', color: 'w', r: 7, c: 0 },   // a1
+      { type: 'king', color: 'b', r: 0, c: 7 },   // h8
       { type: 'pawn', color: 'b', r: 1, c: 6 },   // g7
       { type: 'pawn', color: 'b', r: 1, c: 7 }    // h7
     ],
     solution: [
-      { fromR: 3, fromC: 4, toR: 1, toC: 6 }, // 1. Ne7+
+      { fromR: 4, fromC: 7, toR: 1, toC: 7 }, // 1. Qxh7+!
       { fromR: 7, fromC: 0, toR: 7, toC: 7 }  // 2. Rh1#
     ],
     opponentResponses: [
-      { fromR: 0, fromC: 6, toR: 0, toC: 7 } // Kh8
+      { fromR: 0, fromC: 7, toR: 1, toC: 7 } // 1... Kxh7
     ],
-    hint: 'Step 1: Knight to e7 with check to pin the King to h8.',
-    explanation: 'Ne7+ forces the King into the corner at h8. Then the Rook swings to the open h-file, delivering decisive Anastasia mate.'
+    hint: 'Step 1: Sacrifice your Queen on h7 with check!',
+    explanation: 'Qxh7+ forces the King onto the open file (Kxh7). Then Rh1# delivers Anastasia mate, with the Knight on e7 cutting off g8 and g6.'
   },
   {
-    id: 'puzzle-corner-trap-2',
-    title: 'Bishop & Rook Net (Mate in 2)',
+    id: 'puzzle-opera-2',
+    title: "Morphy's Opera Net (Mate in 2)",
     type: 'mate-2',
-    description: 'White to move. Coordinate Bishop diagonal cutoff and Rook linear invasion.',
+    description: 'White to move. A legendary Queen sacrifice deflects the defender and clears the file.',
     playerColor: 'w',
     turn: 'w',
     pieces: [
-      { type: 'king', color: 'w', r: 6, c: 2 },
-      { type: 'bishop', color: 'w', r: 4, c: 5 }, // f4
-      { type: 'rook', color: 'w', r: 6, c: 0 },   // a2
-      { type: 'king', color: 'b', r: 0, c: 7 },   // h8
-      { type: 'pawn', color: 'b', r: 1, c: 7 }    // h7
+      { type: 'king', color: 'w', r: 7, c: 2 },   // c1
+      { type: 'rook', color: 'w', r: 7, c: 3 },   // d1
+      { type: 'bishop', color: 'w', r: 3, c: 6 }, // g5 (covers d8)
+      { type: 'queen', color: 'w', r: 4, c: 1 },  // b4
+      { type: 'king', color: 'b', r: 0, c: 4 },   // e8
+      { type: 'knight', color: 'b', r: 1, c: 3 }, // d7
+      { type: 'bishop', color: 'b', r: 0, c: 5 }, // f8
+      { type: 'pawn', color: 'b', r: 1, c: 4 },   // e7
+      { type: 'pawn', color: 'b', r: 1, c: 5 }    // f7
     ],
     solution: [
-      { fromR: 4, fromC: 5, toR: 3, toC: 4 }, // 1. Be5+
-      { fromR: 6, fromC: 0, toR: 0, toC: 0 }  // 2. Ra8#
+      { fromR: 4, fromC: 1, toR: 0, toC: 1 }, // 1. Qb8+!
+      { fromR: 7, fromC: 3, toR: 0, toC: 3 }  // 2. Rd8#
     ],
     opponentResponses: [
-      { fromR: 0, fromC: 7, toR: 0, toC: 6 } // Kg8
+      { fromR: 1, fromC: 3, toR: 0, toC: 1 } // 1... Nxb8
     ],
-    hint: 'Step 1: Check with your Bishop from e5!',
-    explanation: 'Be5+ drives the Black King into the corner or file where Ra8# finishes the game cleanly.'
+    hint: 'Step 1: Invade b8 with your Queen to force the Knight away from defending d8!',
+    explanation: '1. Qb8+! forces 1... Nxb8. With the d-file cleared, 2. Rd8# delivers checkmate backed by the Bishop on g5.'
   }
 ];

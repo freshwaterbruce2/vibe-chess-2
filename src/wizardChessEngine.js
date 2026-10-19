@@ -97,8 +97,10 @@ export function initWizardChess() {
       scene.environmentIntensity = 0.24;
     }
 
-    const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.22, 65);
-    camera.position.set(0, 2.22, 2.72);
+    const initialAspect = window.innerWidth / window.innerHeight;
+    const initialZoomFactor = initialAspect < 1.0 ? Math.max(0, (1.0 / initialAspect) - 1.0) : 0;
+    const camera = new THREE.PerspectiveCamera(40, initialAspect, 0.22, 65);
+    camera.position.set(0, 2.22 + initialZoomFactor * 1.45, 2.72 + initialZoomFactor * 1.75);
 
     const orbitControls = new OrbitControls(camera, renderer.domElement);
     orbitControls.enableDamping = true;
@@ -1480,8 +1482,82 @@ export function initWizardChess() {
     };
     let enPassantTarget = null; // { r: number, c: number } | null
     let halfmoveClock = 0; // 50-move rule
-    let positionHistory = []; // Threefold repetition
+    let positionHistory = []; // Threefold repetition hashes
+    let algebraicMoveList = []; // Standard algebraic moves (e.g. ['e4', 'e5', 'Nf3', ...])
+    let capturedWhitePieces = []; // Pieces captured by White
+    let capturedBlackPieces = []; // Pieces captured by Black
+    let gameResultReason = null; // 'checkmate' | 'stalemate' | 'threefold' | '50-move' | null
     let lastMove = null; // { fromR, fromC, toR, toC, isCapture, pieceType }
+
+    function computePositionHash() {
+      let hash = '';
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          const p = boardState[r][c];
+          if (p) {
+            hash += `${r}${c}${p.color}${p.type[0]};`;
+          }
+        }
+      }
+      hash += `|turn:${currentTurn}`;
+      const wKing = boardState[7] && boardState[7][4];
+      const bKing = boardState[0] && boardState[0][4];
+      const wRookK = boardState[7] && boardState[7][7];
+      const wRookQ = boardState[7] && boardState[7][0];
+      const bRookK = boardState[0] && boardState[0][7];
+      const bRookQ = boardState[0] && boardState[0][0];
+      let castle = '';
+      if (wKing && wKing.type === 'king' && !wKing.hasMoved) {
+        if (wRookK && wRookK.type === 'rook' && !wRookK.hasMoved) castle += 'K';
+        if (wRookQ && wRookQ.type === 'rook' && !wRookQ.hasMoved) castle += 'Q';
+      }
+      if (bKing && bKing.type === 'king' && !bKing.hasMoved) {
+        if (bRookK && bRookK.type === 'rook' && !bRookK.hasMoved) castle += 'k';
+        if (bRookQ && bRookQ.type === 'rook' && !bRookQ.hasMoved) castle += 'q';
+      }
+      hash += `|castling:${castle || '-'}`;
+      if (enPassantTarget) {
+        hash += `|ep:${enPassantTarget.r},${enPassantTarget.c}`;
+      }
+      return hash;
+    }
+
+    function checkThreefoldRepetition() {
+      const currentHash = computePositionHash();
+      let count = 0;
+      for (const h of positionHistory) {
+        if (h === currentHash) count++;
+      }
+      return count >= 3;
+    }
+
+    const CHESS_COL_NAMES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+    function toAlgebraicSquare(r, c) {
+      return `${CHESS_COL_NAMES[c]}${8 - r}`;
+    }
+
+    function formatAlgebraicMove(piece, fromR, fromC, toR, toC, isCapture, isCastling, promoPieceType) {
+      if (isCastling) {
+        return toC > fromC ? 'O-O' : 'O-O-O';
+      }
+      let notation = '';
+      if (piece.type === 'pawn') {
+        if (isCapture) {
+          notation = `${CHESS_COL_NAMES[fromC]}x${toAlgebraicSquare(toR, toC)}`;
+        } else {
+          notation = toAlgebraicSquare(toR, toC);
+        }
+        if (toR === 0 || toR === 7) {
+          const promoChar = (promoPieceType || 'queen').charAt(0).toUpperCase();
+          notation += `=${promoChar === 'K' ? 'N' : promoChar}`;
+        }
+      } else {
+        const symbol = piece.type === 'knight' ? 'N' : piece.type.charAt(0).toUpperCase();
+        notation = `${symbol}${isCapture ? 'x' : ''}${toAlgebraicSquare(toR, toC)}`;
+      }
+      return notation;
+    }
+
     let isTopDown2D = false;
     let activeCaptureContext = null;
     let promotionPendingCallback = null;
@@ -1532,19 +1608,35 @@ export function initWizardChess() {
       };
     }
 
-    function setCameraForSide(color, immediate = false) {
-      // White sits at +Z looking toward -Z (across the Obsidian Altar down the Cathedral Nave & Rose Window)
-      // Black sits at -Z looking toward +Z (across the Obsidian Altar toward the South Narthex Royal Amber Triptych)
+    function getCameraPreset(color = playerColor) {
       const zSign = color === 'b' ? -1 : 1;
-      const desiredPos = new THREE.Vector3(0, 2.22, zSign * 2.72);
-      const desiredTarget = new THREE.Vector3(0, 0.85, zSign * -0.15);
+      const aspect = window.innerWidth / window.innerHeight;
+      if (aspect < 1.0) {
+        // Zoom out camera smoothly in portrait so all 8 columns fit without cropping
+        const zoomFactor = Math.max(0, (1.0 / aspect) - 1.0);
+        const zDist = 2.72 + zoomFactor * 1.75;
+        const yHeight = 2.22 + zoomFactor * 1.45;
+        return {
+          pos: new THREE.Vector3(0, yHeight, zSign * zDist),
+          target: new THREE.Vector3(0, 0.85, zSign * -0.15)
+        };
+      }
+      return {
+        pos: new THREE.Vector3(0, 2.22, zSign * 2.72),
+        target: new THREE.Vector3(0, 0.85, zSign * -0.15)
+      };
+    }
+
+    function setCameraForSide(color, immediate = false) {
+      // White sits at +Z looking toward -Z; Black sits at -Z looking toward +Z
+      const preset = getCameraPreset(color);
       if (immediate) {
         activeCamTransition = null;
-        camera.position.copy(desiredPos);
-        orbitControls.target.copy(desiredTarget);
+        camera.position.copy(preset.pos);
+        orbitControls.target.copy(preset.target);
         flushOrbitControlsDamping();
       } else {
-        smoothCameraTo(desiredPos, desiredTarget, 0.8);
+        smoothCameraTo(preset.pos, preset.target, 0.8);
       }
     }
 
